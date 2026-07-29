@@ -1,0 +1,32 @@
+{
+  "captions/spoken": {
+    "accepted": true,
+    "measurements": {
+      "captions_created": 2.0,
+      "no_overlap": 0.0,
+      "words_available": 8.0
+    },
+    "skill": "edit.captions",
+    "strategy": "9-words-3.0s"
+  },
+  "reframe/wide-to-vertical": {
+    "accepted": true,
+    "measurements": {
+      "aspect": 0.5611,
+      "crop_inside_frame": 1.0,
+      "even_dimensions": 1.0
+    },
+    "skill": "edit.reframe",
+    "strategy": "vertical-follow"
+  },
+  "silence/gap": {
+    "accepted": true,
+    "measurements": {
+      "not_empty": 2.0,
+      "shortened": 1.72,
+      "speech_kept": 0.9968
+    },
+    "skill": "edit.remove_silence",
+    "strategy": "over-0.8s"
+  }
+}
