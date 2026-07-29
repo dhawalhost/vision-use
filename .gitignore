@@ -1,0 +1,34 @@
+# VisionUse working directories
+.vision/
+
+# Generated knowledge-graph output
+graphify-out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Media should never be committed; tests generate their own fixtures.
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.wav
+*.mp3

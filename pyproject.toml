@@ -1,0 +1,157 @@
+[project]
+name = "vision-use"
+version = "0.1.0.dev0"
+description = "Open source AI video intelligence and editing framework"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Typing :: Typed",
+]
+dependencies = [
+    "av>=13.1.0",
+    "numpy>=2.1.0",
+    "pillow>=10.4",
+    "pydantic>=2.9.0",
+    "rich>=13.9.0",
+    "scenedetect>=0.6.4",
+    "typer>=0.15.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/dhawalhost/vision-use"
+Documentation = "https://github.com/dhawalhost/vision-use/tree/main/docs"
+
+[project.scripts]
+vision = "vision_use.cli.main:app"
+vision-mcp = "vision_use.mcp_server:main"
+
+[project.optional-dependencies]
+asr = [
+    "faster-whisper>=1.1.0",
+]
+mcp = [
+    "mcp>=1.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vision_use"]
+
+[dependency-groups]
+dev = [
+    # ASR is an optional extra for users; the dev environment always has it so
+    # CI exercises the transcript analyzer rather than silently skipping it.
+    "faster-whisper>=1.1.0",
+    "mypy>=1.13.0",
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+src = ["vision_use", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # bugbear
+    "A",         # builtins shadowing
+    "C4",        # comprehensions
+    "PTH",       # use pathlib
+    "RET",       # return simplification
+    "SIM",       # simplify
+    "TID",       # tidy imports
+    "ARG",       # unused arguments
+    "ERA",       # commented-out code
+    "PL",        # pylint
+    "RUF",       # ruff-specific
+    "ANN",       # type annotations
+    "D",         # pydocstyle -- CLAUDE.md requires documented publics
+    "T20",       # flake8-print -- CLAUDE.md: never use print()
+    "BLE",       # blind except -- CLAUDE.md: no bare except
+    "TRY",       # tryceratops -- error handling discipline
+]
+ignore = [
+    "D107",    # __init__ docstring; covered by the class docstring
+    "D203",    # incompatible with D211
+    "D213",    # incompatible with D212
+    "TRY003",  # long messages inline; CLAUDE.md wants actionable errors
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "ANN", "PLR2004", "PLR0913", "ARG", "S101"]
+# Typer builds a command's options from its function signature, so a
+# user-facing command with several flags is inherently wide. The alternative --
+# bundling options into a settings object -- would hide them from `--help`.
+"vision_use/cli/main.py" = ["PLR0913", "PLR0917"]
+# `render` is the framework's main entry point; every argument is a real knob a
+# caller reaches for, and bundling them into a settings object would hide them.
+"vision_use/render/renderer.py" = ["PLR0913", "PLR0917"]
+# `run_skill` is the other main entry point: source, plan, request, context,
+# cache, and two registries are each a real knob, and bundling them would hide
+# them from the reader as much as from the caller.
+"vision_use/skills/pipeline.py" = ["PLR0913", "PLR0917"]
+# `_apply_one` is one exhaustive `match` over the operation vocabulary: one
+# branch and one return per op. A dispatch table would trade the exhaustiveness
+# a type checker verifies for a dict lookup it cannot.
+"vision_use/skills/patch.py" = ["PLR0911", "PLR0912", "PLR0915"]
+# `evaluate` mirrors `run_skill`'s signature; narrowing it would just mean the
+# harness could not exercise the arguments a caller actually uses.
+"vision_use/evals.py" = ["PLR0913", "PLR0917"]
+# A plugin's object has no type until it is loaded, and the three registries'
+# `register` methods take unrelated protocols with no common supertype.
+"vision_use/plugins.py" = ["ANN401"]
+# `transform_span` reads a span, applies an operation, writes at a rate, and
+# reports progress. Every argument is a distinct piece of that sentence, and
+# bundling them into a request object would hide them from the one caller that
+# needs to vary them.
+"vision_use/video/transform.py" = ["PLR0913", "PLR0917"]
+# `_bake_clip` needs the plan, the clip, the store, the registry, an id counter
+# and a reporter. They are already the minimum: the alternative is a context
+# object that exists only to satisfy a lint rule.
+"vision_use/render/bake.py" = ["PLR0913", "PLR0917"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_any_explicit = false
+plugins = ["pydantic.mypy"]
+files = ["vision_use", "tests"]
+
+[[tool.mypy.overrides]]
+# PyAV ships stubs; scenedetect does not. Confined to these modules so that a
+# genuinely untyped import elsewhere still fails the build.
+module = ["av.*", "scenedetect.*", "faster_whisper.*", "mcp.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "integration: requires ffmpeg and real media fixtures",
+    "slow: takes more than a few seconds",
+    "asr: needs the 'asr' extra and downloads Whisper weights on first run",
+]
+
+[tool.coverage.run]
+source = ["vision_use"]
+branch = true

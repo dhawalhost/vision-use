@@ -1,0 +1,27 @@
+# Everything the image does not need. Without this the whole working copy --
+# including .venv and .git, which are larger than the image itself -- is sent to
+# the daemon on every build.
+
+.venv/
+.git/
+.github/
+.vision/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Tests and docs are not installed into the runtime image; the Dockerfile copies
+# `vision_use/` explicitly, so nothing here is a build input.
+tests/
+docs/
+*.md
+!README.md
+
+# Media and artefacts that may be lying around a working copy.
+*.mp4
+*.mkv
+*.mov
+*.plan.json
+*.context.json

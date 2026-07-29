@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep cache artefacts inside the workspace so a runner never writes to $HOME.
+  VISION_CACHE_ROOT: ${{ github.workspace }}/.vision/cache
+
+jobs:
+  lint:
+    name: lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: ruff check
+        run: uv run ruff check --output-format github .
+
+      - name: ruff format
+        run: uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy
+
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS is in the matrix because it is the primary development platform
+        # and its ffmpeg build differs from the Linux one in ways that have
+        # already produced divergent probe behaviour.
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # ubuntu-latest (24.04) ships ffmpeg 6.1, which clears the 6+ floor that
+      # `vision doctor` enforces. If the runner image ever rolls back to an
+      # older Ubuntu, doctor fails the job loudly rather than tests failing
+      # obscurely later -- which is the intended behaviour, not a flake.
+      - name: Install ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install dependencies
+        run: uv sync --locked --python ${{ matrix.python }}
+
+      - name: Verify environment
+        run: uv run vision doctor
+
+      # ASR tests are excluded by default: they download Whisper weights from
+      # the HuggingFace hub, which makes the run non-hermetic and dependent on
+      # a third party's availability. They are exercised in the dedicated job
+      # below, where a failure is unambiguous rather than a mystery flake.
+      - name: Run tests
+        run: uv run pytest -m "not asr" --cov --cov-report=term-missing
+
+  asr:
+    name: speech recognition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: uv sync --locked --extra asr
+
+      - name: Run ASR tests
+        run: uv run pytest -m asr
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Built but not pushed: CI's job here is to catch a Dockerfile that has
+      # drifted from the lockfile, not to publish. Releases push (release.yml).
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: vision-use:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # An image that builds but cannot run is the failure mode worth catching:
+      # a missing ffmpeg or an OpenCV shared library shows up here, not in
+      # someone's first `docker run`.
+      - name: Verify the environment inside the image
+        run: docker run --rm vision-use:ci doctor
+
+      - name: Render a video inside the image
+        run: |
+          # World-writable because the image runs as uid 1000 by design and the
+          # runner's workspace is owned by a different uid; without this the
+          # container cannot write its output and the job fails on permissions
+          # rather than on anything about VisionUse.
+          mkdir -p media && chmod 777 media
+          docker run --rm -v "$PWD/media:/media" --entrypoint ffmpeg vision-use:ci \
+            -y -f lavfi -i testsrc=size=320x240:rate=25:duration=2 \
+            -c:v libx264 -pix_fmt yuv420p /media/in.mp4
+          docker run --rm -v "$PWD/media:/media" vision-use:ci \
+            plan new /media/in.mp4 -o /media/plan.json
+          docker run --rm -v "$PWD/media:/media" vision-use:ci \
+            render /media/plan.json -o /media/out.mp4
+          test -s media/out.mp4
