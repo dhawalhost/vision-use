@@ -1,0 +1,108 @@
+{
+  "crop": {
+    "additionalProperties": false,
+    "description": "Rectangular crop, in pixels, relative to the source frame.",
+    "properties": {
+      "height": {
+        "exclusiveMinimum": 0,
+        "title": "Height",
+        "type": "integer"
+      },
+      "width": {
+        "exclusiveMinimum": 0,
+        "title": "Width",
+        "type": "integer"
+      },
+      "x": {
+        "default": 0,
+        "minimum": 0,
+        "title": "X",
+        "type": "integer"
+      },
+      "y": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Y",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "width",
+      "height"
+    ],
+    "title": "CropParams",
+    "type": "object"
+  },
+  "fade": {
+    "additionalProperties": false,
+    "description": "Fade the picture in from, or out to, black.",
+    "properties": {
+      "direction": {
+        "default": "in",
+        "enum": [
+          "in",
+          "out"
+        ],
+        "title": "Direction",
+        "type": "string"
+      },
+      "duration_s": {
+        "default": 0.5,
+        "exclusiveMinimum": 0,
+        "title": "Duration S",
+        "type": "number"
+      },
+      "start_s": {
+        "default": 0.0,
+        "minimum": 0,
+        "title": "Start S",
+        "type": "number"
+      }
+    },
+    "title": "FadeParams",
+    "type": "object"
+  },
+  "invert": {
+    "additionalProperties": false,
+    "description": "Invert the picture. Takes no parameters.",
+    "properties": {},
+    "title": "InvertParams",
+    "type": "object"
+  },
+  "scale": {
+    "additionalProperties": false,
+    "description": "Resize to explicit dimensions.",
+    "properties": {
+      "height": {
+        "exclusiveMinimum": 0,
+        "title": "Height",
+        "type": "integer"
+      },
+      "width": {
+        "exclusiveMinimum": 0,
+        "title": "Width",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "width",
+      "height"
+    ],
+    "title": "ScaleParams",
+    "type": "object"
+  },
+  "volume": {
+    "additionalProperties": false,
+    "description": "Scale audio level by a linear gain factor.",
+    "properties": {
+      "gain": {
+        "default": 1.0,
+        "minimum": 0,
+        "title": "Gain",
+        "type": "number"
+      }
+    },
+    "title": "VolumeParams",
+    "type": "object"
+  }
+}
