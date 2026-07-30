@@ -50,6 +50,9 @@ dev = [
     # ASR is an optional extra for users; the dev environment always has it so
     # CI exercises the transcript analyzer rather than silently skipping it.
     "faster-whisper>=1.1.0",
+    # MCP is an optional extra for users; the server tests need the SDK installed
+    # so CI does not fail on a missing import while the rest of the suite is green.
+    "mcp>=1.2",
     "mypy>=1.13.0",
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",

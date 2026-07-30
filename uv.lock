@@ -1544,6 +1544,7 @@ mcp = [
 [package.dev-dependencies]
 dev = [
     { name = "faster-whisper" },
+    { name = "mcp" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -1567,6 +1568,7 @@ provides-extras = ["asr", "mcp"]
 [package.metadata.requires-dev]
 dev = [
     { name = "faster-whisper", specifier = ">=1.1.0" },
+    { name = "mcp", specifier = ">=1.2" },
     { name = "mypy", specifier = ">=1.13.0" },
     { name = "pytest", specifier = ">=8.3.0" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
